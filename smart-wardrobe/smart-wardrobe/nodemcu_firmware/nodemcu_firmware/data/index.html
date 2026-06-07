@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>IoT 스마트 옷장</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,sans-serif;background:#0F1923;color:#E8EDF2;min-height:100vh}
+.hdr{background:#1A2736;border-bottom:1px solid #2A3A4D;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
+.hdr h1{font-size:15px;font-weight:600}
+.hdr .st{font-size:11px;color:#34C759;display:flex;align-items:center;gap:5px}
+.hdr .dot{width:6px;height:6px;background:#34C759;border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.wrap{max-width:460px;margin:0 auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+.card{background:#1A2736;border:1px solid #2A3A4D;border-radius:14px;padding:16px}
+.card.ca{border-left:3px solid #3B9AE8}
+.card.cb{border-left:3px solid #E8883B}
+.card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.badge{padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;letter-spacing:.4px}
+.ca .badge{background:rgba(59,154,232,.15);color:#3B9AE8}
+.cb .badge{background:rgba(232,136,59,.15);color:#E8883B}
+.card-top span:last-child{font-size:14px;font-weight:600}
+select{background:#0F1923;border:1px solid #2A3A4D;color:#E8EDF2;padding:5px 8px;border-radius:7px;font-size:11px;outline:none}
+.readings{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.rbox{background:#0F1923;border-radius:10px;padding:12px;text-align:center}
+.rbox .rl{font-size:10px;color:#7A8FA3;margin-bottom:5px}
+.rbox .rv{font-family:'Courier New',monospace;font-size:26px;font-weight:500;line-height:1}
+.ca .rv{color:#3B9AE8}
+.cb .rv{color:#E8883B}
+.rbox .ru{font-size:13px;color:#7A8FA3}
+.rbox .rt{font-size:9px;color:#7A8FA3;margin-top:5px}
+.devs{display:flex;gap:6px}
+.dev{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px;border-radius:7px;font-size:11px;font-weight:500;background:#0F1923}
+.dev.on{background:rgba(52,199,89,.1);color:#34C759;border:1px solid rgba(52,199,89,.2)}
+.dev.off{color:#7A8FA3;border:1px solid #2A3A4D}
+.dev .dd{width:5px;height:5px;border-radius:50%}
+.dev.on .dd{background:#34C759}
+.dev.off .dd{background:#7A8FA3}
+.ramp{margin-top:8px;padding:6px 10px;background:rgba(138,103,232,.1);border:1px solid rgba(138,103,232,.2);border-radius:7px;font-size:10px;color:#A78BFA;text-align:center;display:none}
+.ramp.show{display:block}
+.sys{background:#1A2736;border:1px solid #2A3A4D;border-radius:14px;padding:16px}
+.sys-title{font-size:12px;font-weight:600;color:#7A8FA3;margin-bottom:10px}
+.sys-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sys-item{background:#0F1923;border-radius:8px;padding:10px}
+.sys-item .sl{font-size:9px;color:#7A8FA3;margin-bottom:3px}
+.sys-item .sv{font-family:'Courier New',monospace;font-size:12px;font-weight:500}
+.ft{text-align:center;padding:14px;font-size:10px;color:#7A8FA3}
+.ft span{color:#34C759}
+.err{background:rgba(255,69,58,.1);border:1px solid rgba(255,69,58,.2);border-radius:8px;padding:8px 12px;font-size:11px;color:#FF453A;text-align:center;display:none}
+.err.show{display:block}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <h1>IoT 스마트 옷장</h1>
+  <div class="st" id="connSt"><div class="dot"></div>연결됨</div>
+</div>
+
+<div class="wrap">
+  <div class="err" id="errMsg"></div>
+
+  <!-- 섹션 A -->
+  <div class="card ca" id="secA">
+    <div class="card-top">
+      <div><span class="badge">A</span> <span>섹션 A</span></div>
+      <select id="selA" onchange="setType('A',this.value)">
+        <option value="0">울/니트</option>
+        <option value="1">가죽</option>
+        <option value="2">면/셔츠</option>
+        <option value="3">패딩</option>
+        <option value="4">실크</option>
+        <option value="5">일반</option>
+      </select>
+    </div>
+    <div class="readings">
+      <div class="rbox">
+        <div class="rl">온도</div>
+        <div class="rv" id="tA">--<span class="ru">°C</span></div>
+        <div class="rt" id="ttA">목표: --°C</div>
+      </div>
+      <div class="rbox">
+        <div class="rl">습도</div>
+        <div class="rv" id="hA">--<span class="ru">%</span></div>
+        <div class="rt" id="thA">목표: --%</div>
+      </div>
+    </div>
+    <div class="devs">
+      <div class="dev off" id="pA"><div class="dd"></div>제습 OFF</div>
+      <div class="dev off" id="htA"><div class="dd"></div>히터 OFF</div>
+    </div>
+    <div class="ramp" id="rampA">점진적 전환 진행 중...</div>
+  </div>
+
+  <!-- 섹션 B -->
+  <div class="card cb" id="secB">
+    <div class="card-top">
+      <div><span class="badge">B</span> <span>섹션 B</span></div>
+      <select id="selB" onchange="setType('B',this.value)">
+        <option value="0">울/니트</option>
+        <option value="1">가죽</option>
+        <option value="2">면/셔츠</option>
+        <option value="3">패딩</option>
+        <option value="4">실크</option>
+        <option value="5">일반</option>
+      </select>
+    </div>
+    <div class="readings">
+      <div class="rbox">
+        <div class="rl">온도</div>
+        <div class="rv" id="tB">--<span class="ru">°C</span></div>
+        <div class="rt" id="ttB">목표: --°C</div>
+      </div>
+      <div class="rbox">
+        <div class="rl">습도</div>
+        <div class="rv" id="hB">--<span class="ru">%</span></div>
+        <div class="rt" id="thB">목표: --%</div>
+      </div>
+    </div>
+    <div class="devs">
+      <div class="dev off" id="pB"><div class="dd"></div>제습 OFF</div>
+      <div class="dev off" id="htB"><div class="dd"></div>히터 OFF</div>
+    </div>
+    <div class="ramp" id="rampB">점진적 전환 진행 중...</div>
+  </div>
+
+  <!-- 시스템 정보 -->
+  <div class="sys">
+    <div class="sys-title">시스템 정보</div>
+    <div class="sys-grid">
+      <div class="sys-item">
+        <div class="sl">Wi-Fi</div>
+        <div class="sv" id="wifiSt" style="color:#34C759">연결됨</div>
+      </div>
+      <div class="sys-item">
+        <div class="sl">갱신</div>
+        <div class="sv" id="lastUpd">--</div>
+      </div>
+      <div class="sys-item">
+        <div class="sl">센서 A</div>
+        <div class="sv" id="senA" style="color:#34C759">정상</div>
+      </div>
+      <div class="sys-item">
+        <div class="sl">센서 B</div>
+        <div class="sv" id="senB" style="color:#34C759">정상</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ft">IoT 스마트 옷장 v1.0 · <span>자동 갱신 5초</span></div>
+</div>
+
+<script>
+const NAMES = ['울/니트','가죽','면/셔츠','패딩','실크','일반'];
+let updating = false;
+
+function updateUI(d) {
+    if (!d || !d.A || !d.B) return;
+
+    // 섹션 A
+    document.getElementById('tA').innerHTML = d.A.t.toFixed(1) + '<span class="ru">°C</span>';
+    document.getElementById('hA').innerHTML = d.A.h.toFixed(1) + '<span class="ru">%</span>';
+    document.getElementById('ttA').textContent = '목표: ' + d.A.tt.toFixed(1) + '°C';
+    document.getElementById('thA').textContent = '목표: ' + d.A.th.toFixed(1) + '%';
+    setDev('pA', d.A.p, '제습');
+    setDev('htA', d.A.ht, '히터');
+    document.getElementById('selA').value = d.A.c;
+    document.getElementById('rampA').className = 'ramp' + (d.A.r ? ' show' : '');
+    setSensor('senA', d.A.e);
+
+    // 섹션 B
+    document.getElementById('tB').innerHTML = d.B.t.toFixed(1) + '<span class="ru">°C</span>';
+    document.getElementById('hB').innerHTML = d.B.h.toFixed(1) + '<span class="ru">%</span>';
+    document.getElementById('ttB').textContent = '목표: ' + d.B.tt.toFixed(1) + '°C';
+    document.getElementById('thB').textContent = '목표: ' + d.B.th.toFixed(1) + '%';
+    setDev('pB', d.B.p, '제습');
+    setDev('htB', d.B.ht, '히터');
+    document.getElementById('selB').value = d.B.c;
+    document.getElementById('rampB').className = 'ramp' + (d.B.r ? ' show' : '');
+    setSensor('senB', d.B.e);
+
+    // 갱신 시간
+    const now = new Date();
+    document.getElementById('lastUpd').textContent =
+        now.getHours().toString().padStart(2,'0') + ':' +
+        now.getMinutes().toString().padStart(2,'0') + ':' +
+        now.getSeconds().toString().padStart(2,'0');
+
+    hideError();
+}
+
+function setDev(id, on, label) {
+    const el = document.getElementById(id);
+    el.className = 'dev ' + (on ? 'on' : 'off');
+    el.innerHTML = '<div class="dd"></div>' + label + (on ? ' ON' : ' OFF');
+}
+
+function setSensor(id, err) {
+    const el = document.getElementById(id);
+    if (err) {
+        el.textContent = '오류';
+        el.style.color = '#FF453A';
+    } else {
+        el.textContent = '정상';
+        el.style.color = '#34C759';
+    }
+}
+
+function showError(msg) {
+    const el = document.getElementById('errMsg');
+    el.textContent = msg;
+    el.className = 'err show';
+    document.getElementById('connSt').innerHTML = '<div class="dot" style="background:#FF453A;animation:none"></div><span style="color:#FF453A">연결 끊김</span>';
+}
+
+function hideError() {
+    document.getElementById('errMsg').className = 'err';
+    document.getElementById('connSt').innerHTML = '<div class="dot"></div>연결됨';
+}
+
+async function fetchStatus() {
+    if (updating) return;
+    updating = true;
+    try {
+        const res = await fetch('/status', {signal: AbortSignal.timeout(4000)});
+        if (!res.ok) throw new Error('서버 응답 오류');
+        const data = await res.json();
+        updateUI(data);
+    } catch (e) {
+        showError('옷장과 연결할 수 없습니다');
+    }
+    updating = false;
+}
+
+async function setType(section, type) {
+    try {
+        const res = await fetch('/set?section=' + section + '&type=' + type);
+        const data = await res.json();
+        if (data.result === 'ok') {
+            setTimeout(fetchStatus, 500);
+        }
+    } catch (e) {
+        showError('명령 전송 실패');
+    }
+}
+
+// 5초마다 자동 갱신
+fetchStatus();
+setInterval(fetchStatus, 5000);
+</script>
+</body>
+</html>
