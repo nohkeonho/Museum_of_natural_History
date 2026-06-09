@@ -23,7 +23,7 @@
 #define NODE_RX       10
 #define NODE_TX       11
 
-#define DHT_TYPE DHT22
+#define DHT_TYPE DHT11
 
 // ============================================================
 // 주기 설정 (밀리초)
